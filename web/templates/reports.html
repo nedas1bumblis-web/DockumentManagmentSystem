@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Ataskaitos') }}{% endblock %}
+{% set r = report %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ _('Sistemos naudojimo ataskaita') if r.for_admin else _('Žinių bazės naudojimo ataskaita') }}</h1>
+    <p class="subtitle">{{ _('Pagal užklausų žurnalą. Klausimų tekstai nerodomi.') }}</p>
+  </div>
+  <a class="btn ghost" href="{{ url_for('web.reports_csv', **{'from': r.start.isoformat(), 'to': r.end.isoformat()}) }}">{{ _('Atsisiųsti CSV') }}</a>
+</div>
+
+<form method="get" class="filters card">
+  <label>{{ _('Nuo') }} <input type="date" name="from" value="{{ r.start.isoformat() }}"></label>
+  <label>{{ _('Iki') }} <input type="date" name="to" value="{{ r.end.isoformat() }}"></label>
+  <div class="filter-buttons"><button type="submit" class="small">{{ _('Rodyti') }}</button></div>
+</form>
+
+<div class="stats">
+  <div class="stat"><span>{{ _('Klausimų') }}</span><strong>{{ r.queries }}</strong></div>
+  <div class="stat"><span>{{ _('Atsakyta su šaltiniu') }}</span><strong>{{ r.answered }}</strong></div>
+  <div class="stat"><span>{{ _('Informacijos nerasta') }}</span><strong>{{ r.not_found }}</strong></div>
+  <div class="stat"><span>{{ _('Klaususių vartotojų') }}</span><strong>{{ r.askers }}</strong></div>
+  {% if r.for_admin %}
+  <div class="stat"><span>{{ _('Įkelta dokumentų') }}</span><strong>{{ r.uploads }}</strong></div>
+  <div class="stat {{ 'alert' if r.uploads_failed }}"><span>{{ _('Nepavyko apdoroti') }}</span><strong>{{ r.uploads_failed }}</strong></div>
+  <div class="stat"><span>{{ _('Dokumentų iš viso') }}</span><strong>{{ r.documents_total }}</strong></div>
+  <div class="stat"><span>{{ _('Vartotojų iš viso') }}</span><strong>{{ r.users_total }}</strong></div>
+  {% endif %}
+</div>
+
+{% macro table(headers, rows, empty) %}
+{% if rows %}
+<div class="table-wrap">
+<table class="compact">
+  <thead><tr>{% for h in headers %}<th class="{{ 'num' if loop.index > 1 and h.endswith('#') }}">{{ _(h.rstrip('#')) }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for row in rows %}<tr>{% for cell in row %}<td class="{{ 'num' if cell is number }}">{{ cell }}</td>{% endfor %}</tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}<p class="empty">{{ _(empty) }}</p>{% endif %}
+{% endmacro %}
+
+<div class="section-title"><h2>{{ _('Dažniausiai naudojami dokumentai') }}</h2></div>
+{{ table(['Dokumentas', 'Kategorija', 'Padalinys', 'Atsakymų#'], r.top_documents, 'Per šį laikotarpį dokumentai necituoti.') }}
+
+<div class="grid2">
+  <div>
+    <div class="section-title"><h2>{{ _('Pagal kategorijas') }}</h2></div>
+    {{ table(['Kategorija', 'Atsakymų#'], r.by_category, 'Duomenų nėra.') }}
+  </div>
+  <div>
+    <div class="section-title"><h2>{{ _('Pagal padalinius') }}</h2></div>
+    {{ table(['Padalinys', 'Klausimų#', 'Klaususių vartotojų#'], r.by_department, 'Duomenų nėra.') }}
+  </div>
+</div>
+
+<div class="section-title"><h2>{{ _('Klausimai pagal dienas') }}</h2></div>
+{{ table(['Diena', 'Klausimų#'], r.per_day, 'Per šį laikotarpį klausimų nebuvo.') }}
+
+{% if r.for_admin %}
+<div class="section-title"><h2>{{ _('Aktyviausi vartotojai') }}</h2></div>
+{{ table(['El. paštas', 'Padalinys', 'Klausimų#', 'Įkėlė dokumentų#'], r.active_users, 'Per šį laikotarpį aktyvių vartotojų nebuvo.') }}
+{% endif %}
+{% endblock %}

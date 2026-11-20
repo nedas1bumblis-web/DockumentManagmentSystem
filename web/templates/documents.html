@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Mano dokumentai') }}{% endblock %}
+{% set status_labels = {'ready': 'Paruoštas', 'processing': 'Apdorojamas', 'failed': 'Klaida'} %}
+{% macro document_table(rows) %}
+<div class="table-wrap">
+<table>
+  <thead><tr><th>{{ _('Pavadinimas') }}</th><th>{{ _('Tipas') }}</th><th>{{ _('Kategorija') }}</th><th>{{ _('Būsena') }}</th><th>{{ _('Psl.') }}</th><th>{{ _('Įkelta') }}</th><th>{{ _('Veiksmai') }}</th></tr></thead>
+  <tbody>
+  {% for d in rows %}
+    <tr>
+      <td class="title"><a href="{{ url_for('web.preview', document_id=d.document_id) }}">{{ d.title }}</a></td>
+      <td><span class="badge type">{{ d.file_type|upper }}</span></td>
+      <td>{{ category_names.get(d.category_id, '–') }}</td>
+      <td><span class="badge {{ d.status }}">{{ _(status_labels[d.status]) }}</span>
+        {% if d.error_message %}<small class="error-detail">{{ _(d.error_message) }}</small>{% endif %}</td>
+      <td class="num">{{ d.page_count or '–' }}</td>
+      <td class="num">{{ d.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td>
+        <div class="actions">
+          <form method="post" action="{{ url_for('web.rename', document_id=d.document_id) }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="text" name="title" value="{{ d.title }}" maxlength="200" aria-label="{{ _('Naujas pavadinimas') }}">
+            <button type="submit" class="small ghost">{{ _('Išsaugoti') }}</button>
+          </form>
+          <form method="post" action="{{ url_for('web.delete', document_id=d.document_id) }}" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="small danger">{{ _('Ištrinti') }}</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endmacro %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ _('Mano dokumentai') }}</h1>
+    <p class="subtitle">{{ _('Įkelkite PDF ar DOCX failus ir užduokite klausimus apie jų turinį.') }}</p>
+  </div>
+</div>
+
+<div class="grid2">
+  <section class="card">
+    <h2>{{ _('Įkelti dokumentą') }}</h2>
+    <form method="post" action="{{ url_for('web.upload') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>{{ _('Failas (PDF arba DOCX, iki 20 MB)') }} <input type="file" name="file" accept=".pdf,.docx" required></label>
+      <label>{{ _('Pavadinimas (nebūtina)') }} <input type="text" name="title" maxlength="200"></label>
+      <div class="row2">
+        <label>{{ _('Kategorija') }}
+          <select name="category_id">
+            {% for c in categories %}<option value="{{ c.category_id }}">{{ c.name }}</option>{% endfor %}
+          </select></label>
+        <label>{{ _('Dokumento data (nebūtina)') }} <input type="date" name="document_date"></label>
+      </div>
+      <button type="submit">{{ _('Įkelti') }}</button>
+    </form>
+  </section>
+  <section class="card">
+    <h2>{{ _('Įkelti apibendrinimą') }}</h2>
+    <form method="post" action="{{ url_for('web.upload_summary') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>{{ _('Apibendrinimo failas (PDF arba DOCX)') }} <input type="file" name="file" accept=".pdf,.docx" required></label>
+      <label>{{ _('Pavadinimas (nebūtina)') }} <input type="text" name="title" maxlength="200"></label>
+      <button type="submit">{{ _('Įkelti') }}</button>
+    </form>
+  </section>
+</div>
+
+{% set docs = documents|selectattr('kind', 'equalto', 'document')|list %}
+{% set ready_docs = docs|selectattr('status', 'equalto', 'ready')|list %}
+{% if ready_docs %}
+<section class="card generate">
+  <h2>{{ _('Sukurti apibendrinimą (PDF)') }}</h2>
+  <p class="muted">{{ _('Dirbtinis intelektas apibendrins pažymėtus dokumentus (iki {n}) ir išsaugos PDF failą skyriuje „Apibendrinimai“.', n=max_summary) }}</p>
+  <form method="post" action="{{ url_for('web.generate_summary') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <fieldset>
+      <legend>{{ _('Dokumentai, kuriuos apibendrinti') }}</legend>
+      <div class="doc-list">
+      {% for d in ready_docs %}
+        <label class="check"><input type="checkbox" name="document_ids" value="{{ d.document_id }}"> {{ d.title }}</label>
+      {% endfor %}
+      </div>
+    </fieldset>
+    <div class="row2">
+      <label>{{ _('Pavadinimas (nebūtina)') }} <input type="text" name="title" maxlength="200"></label>
+      <label>{{ _('Apibendrinimo kalba') }}
+        <select name="language">
+          {% for value, label in [('lt', 'Lietuvių'), ('en', 'Anglų')] %}<option value="{{ value }}">{{ _(label) }}</option>{% endfor %}
+        </select></label>
+    </div>
+    <button type="submit">{{ _('Sukurti PDF') }}</button>
+  </form>
+</section>
+{% endif %}
+{% set summaries = documents|selectattr('kind', 'equalto', 'summary')|list %}
+<div class="section-title"><h2>{{ _('Dokumentai') }}</h2><span class="count">{{ docs|length }}</span></div>
+{% if docs %}{{ document_table(docs) }}{% else %}<p class="empty">{{ _('Dar neįkėlėte nė vieno dokumento.') }}</p>{% endif %}
+
+<div class="section-title"><h2>{{ _('Apibendrinimai') }}</h2><span class="count">{{ summaries|length }}</span></div>
+{% if summaries %}{{ document_table(summaries) }}{% else %}<p class="empty">{{ _('Apibendrinimų nėra.') }}</p>{% endif %}
+{% endblock %}

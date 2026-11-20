@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ document.title }}{% endblock %}
+{% set status_labels = {'ready': 'Paruoštas', 'processing': 'Apdorojamas', 'failed': 'Klaida'} %}
+{% block content %}
+<p><a href="{{ url_for('web.documents') }}">← {{ _('Mano dokumentai') }}</a></p>
+<h1>{{ document.title }}</h1>
+<div class="meta">
+  <span class="badge type">{{ document.file_type|upper }}</span>
+  <span class="badge {{ document.status }}">{{ _(status_labels[document.status]) }}</span>
+  <span>{{ document.page_count or '–' }} {{ _('psl.') }}</span> ·
+  <span>{{ _('įkelta') }} {{ document.uploaded_at.strftime('%Y-%m-%d %H:%M') }}</span> ·
+  <a href="{{ url_for('web.download', document_id=document.document_id) }}">{{ _('Atsisiųsti originalą') }}</a>
+</div>
+<form method="post" action="{{ url_for('web.rename', document_id=document.document_id) }}" class="card rename">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="back" value="preview">
+  <label>{{ _('Pavadinimas') }} <input type="text" name="title" value="{{ document.title }}" maxlength="200" required></label>
+  <label class="short">{{ _('Kategorija') }}
+    <select name="category_id">
+      {% for c in categories %}<option value="{{ c.category_id }}" {{ 'selected' if c.category_id == document.category_id }}>{{ c.name }}</option>{% endfor %}
+    </select></label>
+  <label class="short">{{ _('Dokumento data') }} <input type="date" name="document_date" value="{{ document.document_date.isoformat() }}"></label>
+  <button type="submit">{{ _('Išsaugoti') }}</button>
+</form>
+<p class="muted">{{ _('Padalinys') }}: {{ department.name if department else '–' }} · {{ _('Autorius') }}: {{ g.user.email }}{% if document.kind == 'summary' %} · {{ _('Apibendrinimas') }}{% endif %}</p>
+{% if document.status != 'ready' %}
+  <p class="flash error">{{ _(document.error_message or 'Dokumentas dar apdorojamas.') }}</p>
+{% endif %}
+{% set page_label = _('≈ p.') if document.file_type == 'docx' else _('p.') %}
+<div class="section-title"><h2>{{ _('Ištrauktas tekstas') }}</h2><span class="count">{{ chunks|length }}</span></div>
+{% for c in chunks %}
+  <article class="chunk">
+    <div class="chunk-head">{{ _('Ištrauka') }} {{ c.chunk_index + 1 }}{% if c.page %} · {{ page_label }} {{ c.page }}{% endif %}</div>
+    <p>{{ c.content }}</p>
+  </article>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="{{ lang }}"{% if theme != 'system' %} data-theme="{{ theme }}"{% endif %}>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ _('Žinių bazė') }}{% endblock %} · {{ _('Žinių bazė') }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% set back_to = request.full_path if request.method == 'GET' else request.path %}
+<header class="top">
+  <a class="brand" href="{{ url_for('web.index') }}"><span class="brand-mark">Ž</span>{{ _('Įmonės žinių bazė') }}</a>
+  <div class="top-right">
+  <form method="post" action="{{ url_for('web.set_language') }}" class="theme-switch" aria-label="{{ _('Kalba') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="next" value="{{ back_to }}">
+    {% for value, label in languages.items() %}
+    <button type="submit" name="lang" value="{{ value }}" lang="{{ value }}" aria-pressed="{{ 'true' if lang == value else 'false' }}"
+            title="{{ label }}">{{ value|upper }}</button>
+    {% endfor %}
+  </form>
+  <form method="post" action="{{ url_for('web.set_theme') }}" class="theme-switch" aria-label="{{ _('Spalvų tema') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="next" value="{{ back_to }}">
+    {% for value, label in [('light', '☀ ' ~ _('Šviesi')), ('dark', '☾ ' ~ _('Tamsi')), ('system', _('Auto'))] %}
+    <button type="submit" name="theme" value="{{ value }}" aria-pressed="{{ 'true' if theme == value else 'false' }}"
+            title="{{ _(themes[value]) }}">{{ label }}</button>
+    {% endfor %}
+  </form>
+  {% if g.user %}
+  {% set here = request.endpoint or '' %}
+  <nav>
+    <a href="{{ url_for('web.documents') }}" class="{{ 'active' if here in ('web.documents', 'web.preview') }}">{{ _('Mano dokumentai') }}</a>
+    <a href="{{ url_for('web.ask') }}" class="{{ 'active' if here == 'web.ask' }}">{{ _('Klausimai') }}</a>
+    <a href="{{ url_for('web.history') }}" class="{{ 'active' if here == 'web.history' }}">{{ _('Istorija') }}</a>
+    {% if g.user.role in ('admin', 'management') %}<a href="{{ url_for('web.reports') }}" class="{{ 'active' if here == 'web.reports' }}">{{ _('Ataskaitos') }}</a>{% endif %}
+    {% if g.user.role == 'admin' %}<a href="{{ url_for('web.admin') }}" class="{{ 'active' if here.startswith('web.admin') }}">{{ _('Admin panelė') }}</a>{% endif %}
+    <span class="user">
+      <span class="avatar" aria-hidden="true">{{ (g.user.first_name or g.user.email)[:1] }}{{ (g.user.last_name or '')[:1] }}</span>
+      <span class="who">{{ g.user.email }}</span>
+      <form method="post" action="{{ url_for('web.logout') }}" class="inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="link">{{ _('Atsijungti') }}</button>
+      </form>
+    </span>
+  </nav>
+  {% endif %}
+  </div>
+</header>
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}<p class="flash {{ category }}" role="status">{{ message }}</p>{% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

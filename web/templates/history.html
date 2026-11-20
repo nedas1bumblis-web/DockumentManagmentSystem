@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Istorija') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ _('Klausimų istorija') }}</h1>
+    <p class="subtitle">{{ _('Paskutiniai jūsų klausimai ir atsakymai iš užklausų žurnalo (naujausi viršuje).') }}</p>
+  </div>
+</div>
+{% if not items %}
+  <p class="empty">{{ _('Dar neuždavėte nė vieno klausimo.') }} <a href="{{ url_for('web.ask') }}">{{ _('Klausimai') }}</a></p>
+{% endif %}
+{% for item in items %}
+<section class="card history-item">
+  <p class="muted small">{{ item.asked_at.astimezone().strftime('%Y-%m-%d %H:%M') }}</p>
+  <h3 class="question">{{ item.question }}</h3>
+  <p class="answer-text">{{ item.answer }}</p>
+  {% if item.sources %}
+    <ul class="sources">
+    {% for s in item.sources %}
+      <li><a href="{{ url_for('web.preview', document_id=s.document_id) }}">{{ s.document }}</a>{% if s.page %},
+        {{ _('≈ p.') if s.file_type == 'docx' else _('p.') }} {{ s.page }}{% endif %}</li>
+    {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted small">{{ _('Šaltinių nėra.') }}</p>
+  {% endif %}
+</section>
+{% endfor %}
+{% endblock %}

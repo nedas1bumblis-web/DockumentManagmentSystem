@@ -1,0 +1,13 @@
+# HTTPS in front of the Flask app (TS-05 step 6). Caddy redirects http:// to https:// on its own.
+# Start: see README.md. Without variables the site answers only on https://localhost.
+# In a classroom paleisti_auditorijoje.ps1 sets DMS_HOST=<this PC's network IP> and DMS_SITES="localhost, <IP>",
+# so classmates can open https://<IP> (Caddy's local CA also issues certificates for IP addresses).
+{
+	default_sni {$DMS_HOST:localhost}              # browsers send no SNI for an IP address, Java (ZAP) none for "localhost"
+}
+
+{$DMS_SITES:localhost} {
+	tls internal                                   # local certificate authority; fine for a demo, not for the internet
+	reverse_proxy host.docker.internal:8000
+	header -Server
+}

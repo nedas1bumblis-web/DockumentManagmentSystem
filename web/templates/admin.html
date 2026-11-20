@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Admin panelė') }}{% endblock %}
+{% set role_labels = {'admin': 'Administratorius', 'employee': 'Vartotojas', 'management': 'Valdymas'} %}
+{% macro page_link(n, label=None, cls="") -%}
+  <a class="page {{ cls }}" href="{{ url_for('web.admin', page=n, **filters) }}">{{ label or n }}</a>
+{%- endmacro %}
+{% macro pager() %}
+{% if pages > 1 %}
+<nav class="pager" aria-label="{{ _('Puslapiai') }}">
+  {% if page > 1 %}{{ page_link(page - 1, _('← Ankstesnis')) }}{% else %}<span class="page disabled">{{ _('← Ankstesnis') }}</span>{% endif %}
+  {% for n in range(1, pages + 1) %}
+    {% if n == 1 or n == pages or (n - page)|abs <= 2 %}
+      {% if n == page %}<span class="page current" aria-current="page">{{ n }}</span>{% else %}{{ page_link(n) }}{% endif %}
+    {% elif (n - page)|abs == 3 %}<span class="page gap">…</span>{% endif %}
+  {% endfor %}
+  {% if page < pages %}{{ page_link(page + 1, _('Kitas →')) }}{% else %}<span class="page disabled">{{ _('Kitas →') }}</span>{% endif %}
+</nav>
+{% endif %}
+{% endmacro %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ _('Admin panelė') }}</h1>
+    <p class="subtitle">{{ _('Vartotojai, jų būsena ir dokumentų skaičius.') }}</p>
+  </div>
+  <div class="toolbar">
+    <a class="btn" href="{{ url_for('web.admin_user_new') }}">{{ _('+ Naujas vartotojas') }}</a>
+    <a class="btn ghost" href="{{ url_for('web.admin_catalog') }}">{{ _('Kategorijos ir padaliniai') }}</a>
+    <a class="btn ghost" href="{{ url_for('web.reports') }}">{{ _('Ataskaitos') }}</a>
+  </div>
+</div>
+
+<div class="stats">
+  <a class="stat" href="{{ url_for('web.admin') }}"><span>{{ _('Vartotojai') }}</span><strong>{{ stats.users }}</strong></a>
+  <a class="stat" href="{{ url_for('web.admin', role='admin') }}"><span>{{ _('Administratoriai') }}</span><strong>{{ stats.admins }}</strong></a>
+  <a class="stat {{ 'alert' if stats.locked }}" href="{{ url_for('web.admin', status='locked') }}"><span>{{ _('Užblokuoti dabar') }}</span><strong>{{ stats.locked }}</strong></a>
+  <a class="stat" href="{{ url_for('web.admin', status='inactive') }}"><span>{{ _('Išjungti') }}</span><strong>{{ stats.inactive }}</strong></a>
+  <a class="stat" href="{{ url_for('web.admin', status='with_docs', sort='docs') }}"><span>{{ _('Dokumentai iš viso') }}</span><strong>{{ stats.documents }}</strong></a>
+</div>
+
+<form method="get" class="filters card" role="search">
+  <label class="grow">{{ _('Paieška') }}
+    <input type="search" name="q" value="{{ q }}" maxlength="100" placeholder="{{ _('El. paštas, vardas arba pavardė') }}"></label>
+  <label>{{ _('Rolė') }}
+    <select name="role">
+      <option value="">{{ _('Visos') }}</option>
+      {% for value in ['employee', 'admin', 'management'] %}
+      <option value="{{ value }}" {{ 'selected' if role == value }}>{{ _(role_labels[value]) }}</option>
+      {% endfor %}
+    </select></label>
+  <label>{{ _('Būsena') }}
+    <select name="status">
+      <option value="">{{ _('Visi') }}</option>
+      {% for value, label in [('locked', 'Užblokuoti'), ('inactive', 'Išjungti'), ('with_docs', 'Turi dokumentų')] %}
+      <option value="{{ value }}" {{ 'selected' if status == value }}>{{ _(label) }}</option>
+      {% endfor %}
+    </select></label>
+  <label>{{ _('Rikiuoti') }}
+    <select name="sort">
+      {% for value, label in [('created', 'Registracijos tvarka'), ('email', 'El. paštas'), ('name', 'Pavardė'), ('docs', 'Daugiausia dokumentų')] %}
+      <option value="{{ value }}" {{ 'selected' if sort == value }}>{{ _(label) }}</option>
+      {% endfor %}
+    </select></label>
+  <div class="filter-buttons">
+    <button type="submit" class="small">{{ _('Rodyti') }}</button>
+    {% if filters %}<a class="clear" href="{{ url_for('web.admin') }}">{{ _('Išvalyti') }}</a>{% endif %}
+  </div>
+</form>
+
+<div class="list-head">
+  <p class="muted">{% if total %}{{ _('Rodoma {first}–{last} iš {total}', first=first, last=last, total=total) }}{% if filters.q or filters.role or filters.status %} {{ _('(filtruota)') }}{% endif %}{% else %}{{ _('Nieko nerasta') }}{% endif %}</p>
+  {{ pager() }}
+</div>
+
+{% if rows %}
+<div class="table-wrap">
+<table class="compact">
+  <thead><tr><th>{{ _('El. paštas') }}</th><th>{{ _('Vardas, pavardė') }}</th><th>{{ _('Rolė') }}</th><th>{{ _('Būsena') }}</th><th class="num">{{ _('Dokumentai') }}</th><th>{{ _('Veiksmai') }}</th></tr></thead>
+  <tbody>
+  {% for u, n_docs in rows %}
+    {% set locked = u.locked_until and u.locked_until > now %}
+    <tr>
+      <td class="title">{{ u.email }}</td>
+      <td>{{ u.first_name }} {{ u.last_name }}</td>
+      <td><span class="badge {{ 'role' if u.role == 'admin' else 'type' }}">{{ _(role_labels[u.role]) }}</span></td>
+      <td>
+        {% if not u.is_active %}<span class="badge failed">{{ _('Išjungta') }}</span>
+        {% elif locked %}<span class="badge processing" title="{{ _('Užblokuota iki {time}', time=u.locked_until.astimezone().strftime('%Y-%m-%d %H:%M')) }}">{{ _('Užblokuota iki {time}', time=u.locked_until.astimezone().strftime('%H:%M')) }}</span>
+        {% else %}<span class="badge ready">{{ _('Aktyvi') }}</span>{% endif %}
+      </td>
+      <td class="num"><a href="{{ url_for('web.admin_user_documents', user_id=u.user_id) }}">{{ _('Dokumentai') }}</a> <span class="muted">({{ n_docs }})</span></td>
+      <td><a href="{{ url_for('web.admin_user_edit', user_id=u.user_id) }}">{{ _('Redaguoti') }}</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<div class="list-foot">{{ pager() }}</div>
+{% else %}
+<p class="empty">{{ _('Pagal šiuos filtrus vartotojų nėra.') }} <a href="{{ url_for('web.admin') }}">{{ _('Rodyti visus') }}</a></p>
+{% endif %}
+{% endblock %}

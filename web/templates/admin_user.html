@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% set role_labels = {'admin': 'Administratorius', 'employee': 'Vartotojas', 'management': 'Valdymas'} %}
+{% block title %}{{ _('Naujas vartotojas') if user is none else user.email }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('web.admin') }}">{{ _('← Admin panelė') }}</a></p>
+<div class="page-head">
+  <div>
+    <h1>{{ _('Naujas vartotojas') if user is none else user.email }}</h1>
+    <p class="subtitle">{{ _('Vartotojo duomenys, padalinys ir prieigos teisės (rolė).') }}</p>
+  </div>
+  {% if user is not none %}<a class="btn ghost" href="{{ url_for('web.admin_user_documents', user_id=user.user_id) }}">{{ _('Dokumentai') }}</a>{% endif %}
+</div>
+
+<div class="grid2">
+<section class="card">
+  <h2>{{ _('Duomenys ir teisės') }}</h2>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% if user is none %}
+    <label>{{ _('El. paštas') }} <input type="email" name="email" value="{{ values.email }}" maxlength="100" required autocomplete="off"></label>
+    {% endif %}
+    <div class="row2">
+      <label>{{ _('Vardas') }} <input type="text" name="first_name" value="{{ values.first_name }}" maxlength="50" required></label>
+      <label>{{ _('Pavardė') }} <input type="text" name="last_name" value="{{ values.last_name }}" maxlength="50" required></label>
+    </div>
+    <div class="row2">
+      <label>{{ _('Padalinys') }}
+        <select name="department_id" required>
+          {% for d in departments %}<option value="{{ d.department_id }}" {{ 'selected' if values.department_id|string == d.department_id|string }}>{{ d.name }}</option>{% endfor %}
+        </select></label>
+      <label>{{ _('Rolė') }}
+        <select name="role">
+          {% for value in roles %}<option value="{{ value }}" {{ 'selected' if values.role == value }}>{{ _(role_labels[value]) }}</option>{% endfor %}
+        </select></label>
+    </div>
+    {% if user is none %}
+    <label>{{ _('Laikinas slaptažodis (bent 8 simboliai)') }} <input type="password" name="password" minlength="8" required autocomplete="new-password"></label>
+    <button type="submit">{{ _('Sukurti') }}</button>
+    {% else %}
+    <label class="check"><input type="checkbox" name="is_active" value="1" {{ 'checked' if values.is_active }}> {{ _('Paskyra aktyvi') }}</label>
+    <p></p>
+    <button type="submit">{{ _('Išsaugoti') }}</button>
+    {% endif %}
+  </form>
+</section>
+
+{% if user is not none %}
+<section class="card">
+  <h2>{{ _('Prisijungimas') }}</h2>
+  {% if locked %}
+  <p>{{ _('Paskyra užblokuota po {n} nesėkmingų bandymų.', n=user.failed_attempts) }}</p>
+  <form method="post" action="{{ url_for('web.admin_user_unlock', user_id=user.user_id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="ghost">{{ _('Atblokuoti') }}</button>
+  </form>
+  {% else %}
+  <p class="muted">{{ _('Paskyra neužblokuota.') }}</p>
+  {% endif %}
+  <form method="post" action="{{ url_for('web.admin_user_password', user_id=user.user_id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>{{ _('Naujas slaptažodis (bent 8 simboliai)') }} <input type="password" name="password" minlength="8" required autocomplete="new-password"></label>
+    <button type="submit" class="ghost">{{ _('Pakeisti slaptažodį') }}</button>
+  </form>
+  <p class="muted small">{{ _('Sukurta') }}: {{ user.created_at.astimezone().strftime('%Y-%m-%d %H:%M') }}</p>
+</section>
+{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Prisijungimas') }}{% endblock %}
+{% block content %}
+<div class="auth">
+  <section class="card">
+    <div class="auth-head">
+      <div class="brand-mark">Ž</div>
+      <h1>{{ _('Prisijungimas') }}</h1>
+      <p>{{ _('Klauskite apie savo dokumentus – atsakymai su šaltiniais.') }}</p>
+    </div>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label>{{ _('El. paštas') }} <input type="email" name="email" value="{{ email }}" required autofocus autocomplete="username"></label>
+      <label>{{ _('Slaptažodis') }} <input type="password" name="password" required autocomplete="current-password"></label>
+      <button type="submit" class="wide">{{ _('Prisijungti') }}</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

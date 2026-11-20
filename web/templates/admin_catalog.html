@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Kategorijos ir padaliniai') }}{% endblock %}
+{% block content %}
+<p><a href="{{ url_for('web.admin') }}">{{ _('← Admin panelė') }}</a></p>
+<div class="page-head">
+  <div>
+    <h1>{{ _('Kategorijos ir padaliniai') }}</h1>
+    <p class="subtitle">{{ _('Dokumentų metaduomenys: kategorija ir padalinys. Naudojamų įrašų ištrinti negalima.') }}</p>
+  </div>
+</div>
+
+<div class="section-title"><h2>{{ _('Kategorijos') }}</h2><span class="count">{{ categories|length }}</span></div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>{{ _('Pavadinimas') }}</th><th>{{ _('Aprašymas') }}</th><th class="num">{{ _('Dokumentai') }}</th><th>{{ _('Veiksmai') }}</th></tr></thead>
+  <tbody>
+  {% for c, n in categories %}
+    <tr>
+      <td colspan="2">
+        <form method="post" action="{{ url_for('web.admin_category_save', category_id=c.category_id) }}" class="inline wide-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="text" name="name" value="{{ c.name }}" maxlength="100" required aria-label="{{ _('Pavadinimas') }}">
+          <input type="text" name="description" value="{{ c.description or '' }}" maxlength="255" aria-label="{{ _('Aprašymas') }}">
+          <button type="submit" class="small ghost">{{ _('Išsaugoti') }}</button>
+        </form>
+      </td>
+      <td class="num">{{ n }}</td>
+      <td>
+        {% if c.category_id == default_category_id %}<span class="muted small">{{ _('numatytoji') }}</span>
+        {% elif n == 0 %}
+        <form method="post" action="{{ url_for('web.admin_category_delete', category_id=c.category_id) }}" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="small danger">{{ _('Ištrinti') }}</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<form method="post" action="{{ url_for('web.admin_category_save') }}" class="card filters">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label class="grow">{{ _('Nauja kategorija') }} <input type="text" name="name" maxlength="100" required></label>
+  <label class="grow">{{ _('Aprašymas') }} <input type="text" name="description" maxlength="255"></label>
+  <div class="filter-buttons"><button type="submit" class="small">{{ _('Pridėti') }}</button></div>
+</form>
+
+<div class="section-title"><h2>{{ _('Padaliniai') }}</h2><span class="count">{{ departments|length }}</span></div>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>{{ _('Pavadinimas, kodas, aprašymas') }}</th><th class="num">{{ _('Vartotojai') }}</th><th class="num">{{ _('Dokumentai') }}</th><th>{{ _('Veiksmai') }}</th></tr></thead>
+  <tbody>
+  {% for d, users, docs in departments %}
+    <tr>
+      <td>
+        <form method="post" action="{{ url_for('web.admin_department_save', department_id=d.department_id) }}" class="inline wide-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="text" name="name" value="{{ d.name }}" maxlength="100" required aria-label="{{ _('Pavadinimas') }}">
+          <input type="text" name="code" value="{{ d.code }}" maxlength="20" required class="code" aria-label="{{ _('Kodas') }}">
+          <input type="text" name="description" value="{{ d.description or '' }}" maxlength="255" aria-label="{{ _('Aprašymas') }}">
+          <button type="submit" class="small ghost">{{ _('Išsaugoti') }}</button>
+        </form>
+      </td>
+      <td class="num">{{ users }}</td>
+      <td class="num">{{ docs }}</td>
+      <td>
+        {% if users == 0 and docs == 0 %}
+        <form method="post" action="{{ url_for('web.admin_department_delete', department_id=d.department_id) }}" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="small danger">{{ _('Ištrinti') }}</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<form method="post" action="{{ url_for('web.admin_department_save') }}" class="card filters">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label class="grow">{{ _('Naujas padalinys') }} <input type="text" name="name" maxlength="100" required></label>
+  <label>{{ _('Kodas') }} <input type="text" name="code" maxlength="20" required></label>
+  <label class="grow">{{ _('Aprašymas') }} <input type="text" name="description" maxlength="255"></label>
+  <div class="filter-buttons"><button type="submit" class="small">{{ _('Pridėti') }}</button></div>
+</form>
+{% endblock %}

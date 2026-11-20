@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Klausimai') }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ _('Klausimai') }}</h1>
+    <p class="subtitle">{{ _('Atsakymas parengiamas tik pagal pažymėtus jūsų dokumentus ir nurodo šaltinį.') }}</p>
+  </div>
+</div>
+{% if categories|length > 1 %}
+<form method="get" class="filters card" role="search">
+  <label class="grow">{{ _('Rodyti tik kategorijos dokumentus') }}
+    <select name="category">
+      <option value="">{{ _('Visos') }}</option>
+      {% for c in categories %}<option value="{{ c.category_id }}" {{ 'selected' if c.category_id == category }}>{{ c.name }}</option>{% endfor %}
+    </select></label>
+  <div class="filter-buttons"><button type="submit" class="small">{{ _('Rodyti') }}</button></div>
+</form>
+{% endif %}
+{% if not documents and category %}
+  <p class="empty">{{ _('Šioje kategorijoje paruoštų dokumentų nėra.') }} <a href="{{ url_for('web.ask') }}">{{ _('Rodyti visus') }}</a></p>
+{% elif not documents %}
+  <p class="empty">{{ _('Pirma įkelkite bent vieną dokumentą skiltyje') }} {{ '„' if lang == 'lt' else '“' }}<a href="{{ url_for('web.documents') }}">{{ _('Mano dokumentai') }}</a>“.</p>
+{% else %}
+<form method="post" class="card" action="{{ url_for('web.ask', category=category) if category else url_for('web.ask') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <fieldset>
+    <legend>{{ _('Dokumentai, kuriuose ieškoti') }}</legend>
+    <div class="doc-list">
+    {% for d in documents %}
+      <label class="check"><input type="checkbox" name="document_ids" value="{{ d.document_id }}"
+        {% if d.document_id in selected or not selected %}checked{% endif %}> {{ d.title }}</label>
+    {% endfor %}
+    </div>
+  </fieldset>
+  <label>{{ _('Klausimas (lietuvių arba anglų kalba)') }}
+    <textarea name="question" rows="3" maxlength="2000" required placeholder="{{ _('Pvz.: Kiek dienų trunka kasmetinės atostogos?') }}">{{ question }}</textarea></label>
+  <button type="submit">{{ _('Klausti') }}</button>
+</form>
+{% endif %}
+
+{% if result %}
+<section class="card answer">
+  <h2>{{ _('Atsakymas') }}</h2>
+  <p class="answer-text">{{ result.answer }}</p>
+  {% if result.sources %}
+    <h3>{{ _('Šaltiniai') }}</h3>
+    <ul class="sources">
+    {% for s in result.sources %}
+      <li><a href="{{ url_for('web.preview', document_id=s.document_id) }}">{{ s.document }}</a>{% if s.page %},
+        {{ _('≈ p.') if file_types.get(s.document_id) == 'docx' else _('p.') }} {{ s.page }}{% endif %}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+  {% if result.confidence is not none %}
+    <p class="similarity muted">{{ _('Paieškos panašumas:') }} <span class="meter"><span class="w{{ (result.confidence|float / 10)|round|int * 10 }}"></span></span>
+      <strong>{{ result.confidence }} %</strong> {{ _('(tai ištraukos panašumas į klausimą, o ne tikimybė, kad atsakymas teisingas).') }}</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

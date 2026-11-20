@@ -1,0 +1,33 @@
+# Direct dependencies, pinned to the versions the project was tested with (Python 3.13, 2026-11-17).
+# pip installs their own dependencies automatically.
+
+# web
+Flask==3.1.3
+Flask-WTF==1.3.0
+Flask-Limiter==4.1.1
+waitress==3.0.2
+
+# database
+SQLAlchemy==2.0.52
+psycopg2-binary==2.9.12
+pgvector==0.5.1
+numpy==2.5.2
+
+# configuration and security
+python-dotenv==1.2.2
+bcrypt==5.0.0
+
+# documents
+pdfplumber==0.11.10
+python-docx==1.2.0
+fpdf2==2.9.0           # generated PDF summaries (QA A3)
+
+# AI
+google-genai==2.21.0
+
+# tests and test tools (pytest, Locust load test, QA rehearsal, dependency audit)
+pytest==9.1.1
+pypdf==7.1.0
+locust==2.47.0
+requests==2.34.2
+pip-audit==2.10.1
